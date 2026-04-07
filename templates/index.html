@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Q&A</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --g0: #16181c;
+            --g1: #1e2026;
+            --g2: #252830;
+            --g3: #2e3240;
+            --g4: #3d4250;
+            --g5: #565e72;
+            --g6: #7a8494;
+            --g7: #a8b4c4;
+            --g8: #ccd6e4;
+            --g9: #eef2f8;
+
+            --accent: #6d9ec4;
+            --accent2: #90bdd8;
+            --accent3: #bcd6e8;
+            --green: #7aaa82;
+            --warm: #c4a882;
+            --red: #c47a7a;
+
+            --glow: rgba(109, 158, 196, 0.14);
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.45;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        @keyframes answerReveal {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes errorSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        html,
+        body {
+            height: 100%;
+            background: var(--g0);
+            font-family: 'Syne', sans-serif;
+            overflow: hidden; 
+            color: var(--g8);
+        }
+
+        /* Grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.4;
+        }
+
+        /* Scanlines */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.012) 50%);
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* ── LAYOUT ── */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            height: 100vh;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            background: var(--g1);
+            border-right: 1px solid var(--g3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            animation: slideIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .sidebar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 1px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 5%, var(--accent) 40%, var(--accent) 60%, transparent 95%);
+            opacity: 0.18;
+        }
+
+        .sidebar-top {
+            padding: 32px 24px 24px;
+            border-bottom: 1px solid var(--g2);
+        }
+
+        .logo-mark {
+            width: 40px;
+            height: 40px;
+            background: var(--g2);
+            border: 1px solid var(--g3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .logo-mark:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 16px var(--glow);
+        }
+
+        .logo-mark svg {
+            width: 17px;
+            height: 17px;
+            fill: var(--accent2);
+        }
+
+        .app-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--g9);
+            letter-spacing: -0.5px;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .app-title span {
+            color: var(--accent2);
+        }
+
+        .app-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--g5);
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-meta {
+            padding: 18px 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .meta-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--g4);
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .meta-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 11px;
+            background: var(--g2);
+            border-radius: 7px;
+            font-size: 0.76rem;
+            color: var(--g7);
+            transition: background 0.2s;
+        }
+
+        .meta-chip:hover {
+            background: var(--g3);
+        }
+
+        .meta-chip .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 2.4s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        .sidebar-bottom {
+            padding: 18px 24px;
+            border-top: 1px solid var(--g2);
+        }
+
+        .powered-by {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--g4);
+            letter-spacing: 1px;
+        }
+
+        .powered-by span {
+            color: var(--g6);
+        }
+
+        /* ── MAIN ── */
+        .main {
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            overflow: hidden;
+            animation: fadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+        }
+
+        /* ── INPUT PANEL ── */
+        .input-panel {
+            padding: 28px 44px 24px;
+            border-bottom: 1px solid var(--g2);
+            background: linear-gradient(to bottom, var(--g1) 0%, var(--g0) 100%);
+            position: relative;
+        }
+
+        .input-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 44px;
+            right: 44px;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--accent2) 50%, transparent);
+            opacity: 0.25;
+        }
+
+        .fields-row-upload,
+        .fields-row-ask {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            align-items: end;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .field-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--g5);
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .field-label::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .field-label-spacer {
+            display: block;
+            height: 14px;
+            /* matches label height */
+        }
+
+        /* ── FILE DROP ── */
+        .file-drop {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .file-drop input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        .file-drop-visual {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            background: var(--g2);
+            border: 1px solid var(--g3);
+            border-radius: 9px;
+            height: 46px;
+            transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+        }
+
+        .file-drop:hover .file-drop-visual {
+            border-color: var(--accent);
+            background: rgba(109, 158, 196, 0.06);
+            box-shadow: 0 0 0 3px rgba(109, 158, 196, 0.08);
+        }
+
+        .file-drop.has-file .file-drop-visual {
+            border-color: var(--green);
+            background: rgba(122, 170, 130, 0.06);
+        }
+
+        .file-icon {
+            flex-shrink: 0;
+            color: var(--accent2);
+        }
+
+        .file-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .file-drop.has-file .file-icon {
+            color: var(--green);
+        }
+
+        .file-text-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-label {
+            font-size: 0.82rem;
+            color: var(--g7);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1;
+        }
+
+        .file-hint {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--g5);
+            margin-top: 2px;
+        }
+
+        /* ── TEXTAREA ── */
+        textarea {
+            width: 100%;
+            height: 46px;
+            padding: 12px 15px;
+            background: var(--g2);
+            border: 1px solid var(--g3);
+            border-radius: 9px;
+            color: var(--g8);
+            font-size: 0.875rem;
+            font-family: 'Syne', sans-serif;
+            font-weight: 400;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+            overflow: hidden;
+        }
+
+        textarea::placeholder {
+            color: var(--g5);
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+            background: rgba(109, 158, 196, 0.04);
+            box-shadow: 0 0 0 3px rgba(109, 158, 196, 0.08);
+        }
+
+        /* ── BUTTONS ── */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .btn {
+            height: 46px;
+            padding: 0 26px;
+            background: var(--g3);
+            border: 1px solid var(--g4);
+            border-radius: 9px;
+            color: var(--g8);
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: 'Syne', sans-serif;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            opacity: 0;
+            transition: opacity 0.22s;
+        }
+
+        .btn:hover::before {
+            opacity: 1;
+        }
+
+        .btn:hover {
+            border-color: var(--accent2);
+            color: #0f1216;
+        }
+
+        .btn:active {
+            transform: scale(0.975);
+        }
+
+        .btn>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-arrow {
+            font-style: normal;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover .btn-arrow {
+            transform: translateX(3px);
+        }
+
+        /* Ghost / discard */
+        .btn-ghost {
+            height: 32px;
+            padding: 0 16px;
+            background: transparent;
+            border: 1px solid var(--g3);
+            border-radius: 7px;
+            color: var(--g5);
+            font-size: 0.72rem;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--red);
+            color: var(--red);
+            background: rgba(196, 122, 122, 0.06);
+        }
+
+        /* ── ERROR BAR ── */
+        .error-bar {
+            margin: 0 44px;
+            padding: 8px 14px;
+            background: rgba(196, 122, 122, 0.08);
+            border: 1px solid rgba(196, 122, 122, 0.22);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            color: var(--red);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: errorSlide 0.3s ease both;
+        }
+
+        .error-bar::before {
+            content: '!';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 1px solid var(--red);
+            font-size: 0.62rem;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+        }
+
+        /* ── ANSWER AREA ── */
+        .answer-area {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--g3) transparent;
+        }
+
+        .answer-area::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .answer-area::-webkit-scrollbar-thumb {
+            background: var(--g3);
+            border-radius: 3px;
+        }
+
+        .answer-empty {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 40px;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+        }
+
+        .empty-graphic {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+
+        .empty-cell {
+            width: 26px;
+            height: 26px;
+            border-radius: 5px;
+            background: var(--g2);
+            border: 1px solid var(--g3);
+        }
+
+        .empty-cell:nth-child(3n+1) {
+            background: var(--g3);
+        }
+
+        .empty-cell:nth-child(5) {
+            border-color: var(--accent);
+            background: rgba(109, 158, 196, 0.10);
+        }
+
+        .empty-cell:nth-child(10) {
+            border-color: var(--accent);
+            background: rgba(109, 158, 196, 0.06);
+        }
+
+        .empty-title {
+            font-size: 0.9rem;
+            color: var(--g6);
+            font-weight: 500;
+        }
+
+        .empty-hint {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--g4);
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .answer-content {
+            padding: 30px 44px 44px;
+            animation: answerReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .answer-header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .answer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(122, 170, 130, 0.1);
+            border: 1px solid rgba(122, 170, 130, 0.22);
+            color: var(--green);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            padding: 4px 11px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .answer-badge::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .answer-divider {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, var(--g3), transparent);
+        }
+
+        .answer-body p {
+            color: var(--g7);
+            font-size: 0.925rem;
+            line-height: 1.95;
+            font-weight: 400;
+            max-width: 66ch;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z" />
+                    </svg>
+                </div>
+                <div class="app-title">PDF <span>Q&A</span></div>
+                <div class="app-subtitle">// document intelligence</div>
+            </div>
+
+            <div class="sidebar-meta">
+                <div class="meta-label">Status</div>
+                <div class="meta-chip">
+                    <span class="dot"></span>
+                    {% if pdf_uploaded %}PDF loaded{% else %}Ready to analyze{% endif %}
+                </div>
+                <div class="meta-chip" style="margin-top:4px;">
+                    <span class="dot" style="background:var(--green); animation-delay:0.8s;"></span>
+                    AI model online
+                </div>
+            </div>
+
+            <div class="sidebar-bottom">
+                <div class="powered-by"><span>KING Rafey Tanwir 👑</span></div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main">
+
+            <!-- INPUT PANEL -->
+            <div class="input-panel">
+
+                {% if not pdf_uploaded %}
+                <!-- STATE 1: Upload PDF -->
+                <form method="post" enctype="multipart/form-data" id="qaForm">
+                    <div class="fields-row-upload">
+                        <div class="field-group">
+                            <label class="field-label" for="fileInput">Document</label>
+                            <div class="file-drop" id="fileDrop">
+                                <input type="file" name="pdf_file" accept="application/pdf" required id="fileInput">
+                                <div class="file-drop-visual">
+                                    <div class="file-icon">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                        </svg>
+                                    </div>
+                                    <div class="file-text-area">
+                                        <div class="file-label" id="fileLabel">Choose a PDF file</div>
+                                        <div class="file-hint" id="fileHint">click to browse or drag &amp; drop</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <span class="field-label-spacer"></span>
+                            <button type="submit" class="btn">
+                                <span>Upload</span>
+                                <i class="btn-arrow">→</i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                {% else %}
+                <!-- STATE 2: Ask a Question -->
+                <form method="post" id="qaForm">
+                    <div class="fields-row-ask">
+                        <div class="field-group">
+                            <label class="field-label" for="questionInput">Question</label>
+                            <textarea name="question" id="questionInput"
+                                placeholder="What would you like to know about this document?"
+                                required>{{ question if question else '' }}</textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <span class="field-label-spacer"></span>
+                            <div class="btn-group">
+                                <button type="submit" class="btn">
+                                    <span>Ask</span>
+                                    <i class="btn-arrow">→</i>
+                                </button>
+                                <button type="submit" name="discard" value="1" class="btn-ghost">
+                                    × Discard PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+
+            </div>
+
+            <!-- ERROR BAR -->
+            {% if error %}
+            <div class="error-bar">{{ error }}</div>
+            {% endif %}
+
+            <!-- ANSWER AREA -->
+            <div class="answer-area">
+                {% if answer %}
+                <div class="answer-content">
+                    <div class="answer-header-row">
+                        <span class="answer-badge">Answer</span>
+                        <div class="answer-divider"></div>
+                    </div>
+                    <div class="answer-body">
+                        <p>{{ answer | safe }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="answer-empty">
+                    <div class="empty-graphic">
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                        <div class="empty-cell"></div>
+                    </div>
+                    <div class="empty-title">No answer yet</div>
+                    <div class="empty-hint">
+                        {% if not pdf_uploaded %}upload a pdf · {% endif %}ask a question · get answers
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileDrop = document.getElementById('fileDrop');
+        const fileLabel = document.getElementById('fileLabel');
+        const fileHint = document.getElementById('fileHint');
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    fileLabel.textContent = this.files[0].name;
+                    fileHint.textContent = (this.files[0].size / 1024).toFixed(0) + ' KB';
+                    fileDrop.classList.add('has-file');
+                }
+            });
+
+            fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('has-file'); });
+            fileDrop.addEventListener('dragleave', () => { if (!fileInput.files?.length) fileDrop.classList.remove('has-file'); });
+            fileDrop.addEventListener('drop', e => {
+                e.preventDefault();
+                const f = e.dataTransfer.files[0];
+                if (f) {
+                    fileLabel.textContent = f.name;
+                    fileHint.textContent = (f.size / 1024).toFixed(0) + ' KB';
+                    fileDrop.classList.add('has-file');
+                }
+            });
+        }
+
+        document.querySelectorAll('.empty-cell').forEach((cell, i) => {
+            cell.style.animationDelay = (i * 0.04) + 's';
+            cell.style.animation = 'fadeUp 0.5s ease both';
+        });
+    </script>
+</body>
+
+</html>
