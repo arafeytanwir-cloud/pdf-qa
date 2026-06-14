@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
 import os
 import cohere
@@ -15,7 +16,8 @@ load_dotenv()
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "supersecretkey"))
 
-templates = Jinja2Templates(directory="templates") 
+env = Environment(loader=FileSystemLoader("templates"))
+templates = Jinja2Templates(env=env)
 
 model = cohere.ClientV2(os.getenv("API_KEY")) 
 
